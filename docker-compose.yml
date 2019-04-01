@@ -1,0 +1,95 @@
+version: "3.0"
+services:
+  redis:
+    image: redis
+    container_name: "ut_pelo_reportes_batch_database_memory"
+    networks:
+      - webnet_ut_pelo_reportes_batch
+  database:
+    image: postgres
+    container_name: "ut_pelo_reportes_batch_database"
+    volumes:
+      - ./database/data:/var/lib/postgresql/data
+      - ./database/migrations:/home/migrations
+      - ./database/seeders:/home/seeders
+    environment:
+      POSTGRES_PASSWORD: edsd5450
+      POSTGRES_USER: sysa
+      POSTGRES_DB: ut_pelo_reportes_batch
+    networks:
+      - webnet_ut_pelo_reportes_batch
+  api:
+    image: adonisjs
+    container_name: "ut_pelo_reportes_batch_api"
+    depends_on:
+      - database
+      - redis
+    volumes:
+      - ./api:/home/api
+    working_dir: "/home/api"
+    environment:
+      MODE: dev
+      HOST: 0.0.0.0
+      PORT: 3333
+      NODE_ENV: development
+      APP_NAME: reportes_batch
+      APP_KEY: x7Sf7NijdcyVmZEdyrQKR3LtjG0dp7CM
+      REDIS_CONNECTION: local
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      DB_CONNECTION: mssql
+      DB_HOST: 192.168.1.252
+      DB_PORT: 49263
+      DB_USER: sysa
+      DB_PASSWORD: edsd5450
+      DB_DATABASE: ut_pelo_reportes_batch
+      DB_CONNECTION_WINCC1: mssql
+      DB_HOST_WINCC1: 192.168.1.2\WINCC
+      DB_PORT_WINCC1: 49263
+      DB_USER_WINCC1: sysa
+      DB_PASSWORD_WINCC1: edsd5450
+      DB_DATABASE_WINCC1: IS_Ready
+      DB_CONNECTION_WINCC2: mssql
+      DB_HOST_WINCC2: 192.168.1.10\WINCC
+      DB_PORT_WINCC2: 49263
+      DB_USER_WINCC2: sysa
+      DB_PASSWORD_WINCC2: edsd5450
+      DB_DATABASE_WINCC2: IS_Ready
+      HASH_DRIVER: bcrypt
+      MAIL_CONNECTION: smtp
+      SMTP_HOST: smtp.gmail.com
+      MAIL_USERNAME: alarmas.unilver@gmail.com
+      MAIL_PASSWORD: edsd5450
+    command: ["bash", "/home/api/run.sh"]
+    networks:
+      - webnet_ut_pelo_reportes_batch
+  client:
+    image: nuxtjs
+    container_name: "ut_pelo_reportes_batch_client"
+    depends_on:
+      - api
+    volumes:
+      - ./client:/home/client
+    working_dir: "/home/client"
+    environment:
+      MODE: dev
+      HOST: 0.0.0.0
+      PORT: 3000
+    command: ["bash", "/home/client/run.sh"]
+    networks:
+      - webnet_ut_pelo_reportes_batch
+  proxy:
+    image: nginx
+    container_name: "ut_pelo_reportes_batch_proxy"
+    ports:
+      - "8080:80"
+    volumes:
+      - ./proxy:/etc/nginx/conf.d
+    depends_on:
+      - client
+      - api
+    networks:
+      - webnet_ut_pelo_reportes_batch
+networks:
+  webnet_ut_pelo_reportes_batch:
+    driver: bridge
